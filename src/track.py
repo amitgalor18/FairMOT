@@ -11,6 +11,7 @@ import argparse
 import motmetrics as mm
 import numpy as np
 import torch
+from datetime import datetime
 
 from tracker.multitracker import JDETracker
 from tracking_utils import visualization as vis
@@ -133,7 +134,9 @@ def main(opt, data_root='/data/MOT16/train', det_root=None, seqs=('MOT16-05',), 
     n_frame = 0
     timer_avgs, timer_calls = [], []
     for seq in seqs:
-        output_dir = os.path.join(data_root, '..', 'outputs', exp_name, seq) if save_images or save_videos else None
+        now=datetime.now()
+        current_time = now.strftime("%d-%m-%Y_%H-%M")
+        output_dir = os.path.join(data_root, '..', 'outputs_'+current_time, exp_name, seq) if save_images or save_videos else None
         logger.info('start seq: {}'.format(seq))
         dataloader = datasets.LoadImages(osp.join(data_root, seq, 'img1'), opt.img_size)
         result_filename = os.path.join(result_root, '{}.txt'.format(seq))
@@ -266,6 +269,11 @@ if __name__ == '__main__':
                       MOT20-08
                       '''
         data_root = os.path.join(opt.data_dir, 'MOT20/images/test')
+    if opt.custom:
+        seqs_str = '''
+                      MOT20-03
+                      '''
+        data_root = os.path.join(opt.data_dir, 'MOT20/train')
     seqs = [seq.strip() for seq in seqs_str.split()]
 
     main(opt,
@@ -274,4 +282,4 @@ if __name__ == '__main__':
          exp_name='MOT17_test_public_dla34',
          show_image=False,
          save_images=False,
-         save_videos=False)
+         save_videos=True)
