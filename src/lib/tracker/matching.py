@@ -105,7 +105,7 @@ def embedding_distance(tracks, detections, metric='cosine'):
     #for i, track in enumerate(tracks):
         #cost_matrix[i, :] = np.maximum(0.0, cdist(track.smooth_feat.reshape(1,-1), det_features, metric))
     track_features = np.asarray([track.smooth_feat for track in tracks], dtype=np.float)
-    cost_matrix = np.maximum(0.0, cdist(track_features, det_features, metric))  # Nomalized features
+    cost_matrix = np.maximum(0.0, cdist(track_features, det_features, metric))/2  # Nomalized features by 2 TODO: remove the 2
     return cost_matrix
 
 
@@ -132,5 +132,7 @@ def fuse_motion(kf, cost_matrix, tracks, detections, only_position=False, lambda
         gating_distance = kf.gating_distance(
             track.mean, track.covariance, measurements, only_position, metric='maha')
         cost_matrix[row, gating_distance > gating_threshold] = np.inf
-        cost_matrix[row] = lambda_ * cost_matrix[row] + (1 - lambda_) * gating_distance
+        #gating_distance=gating_distance/gating_threshold #normalize gating distance (had very high values)
+        cost_matrix[row] = np.multiply(lambda_ * cost_matrix[row],(1 - lambda_) * gating_distance) #multiply instead of sum of two distributions  
+        #cost_matrix[row] = lambda_ * cost_matrix[row] + (1 - lambda_) * gating_distance
     return cost_matrix
