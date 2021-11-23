@@ -105,7 +105,7 @@ def embedding_distance(tracks, detections, metric='cosine'):
     #for i, track in enumerate(tracks):
         #cost_matrix[i, :] = np.maximum(0.0, cdist(track.smooth_feat.reshape(1,-1), det_features, metric))
     track_features = np.asarray([track.smooth_feat for track in tracks], dtype=np.float)
-    cost_matrix = np.maximum(0.0, cdist(track_features, det_features, metric))/2  # Nomalized features by 2 TODO: remove the 2
+    cost_matrix = np.maximum(0.0, cdist(track_features, det_features, metric))  # Nomalized features by 2 TODO: remove the 2
     return cost_matrix
 
 
@@ -128,11 +128,17 @@ def fuse_motion(kf, cost_matrix, tracks, detections, only_position=False, lambda
     gating_dim = 2 if only_position else 4
     gating_threshold = kalman_filter.chi2inv95[gating_dim]
     measurements = np.asarray([det.to_xyah() for det in detections])
+    # h=np.loadtxt("src/MOT20_distances_hist.txt")          # load histogram of 2 distances based on all MOT20 scenarios
+    # x_emb=np.loadtxt("src/MOT20_emb_distances_x.txt")     # load indices for histogram
+    # y_maha=np.loadtxt("src/MOT20_maha_distances_y.txt")
     for row, track in enumerate(tracks):
         gating_distance = kf.gating_distance(
             track.mean, track.covariance, measurements, only_position, metric='maha')
         cost_matrix[row, gating_distance > gating_threshold] = np.inf
         #gating_distance=gating_distance/gating_threshold #normalize gating distance (had very high values)
-        cost_matrix[row] = np.multiply(lambda_ * cost_matrix[row],(1 - lambda_) * gating_distance) #multiply instead of sum of two distributions  
-        #cost_matrix[row] = lambda_ * cost_matrix[row] + (1 - lambda_) * gating_distance
+        #cost_matrix[row] = np.multiply(lambda_ * cost_matrix[row],(1 - lambda_) * gating_distance) #multiply instead of sum of two distributions  
+        cost_matrix[row] = lambda_ * cost_matrix[row] + (1 - lambda_) * gating_distance #original score (distance combination)
+        # emb_index = np.searchsorted(x_emb[:-1],cost_matrix[row], side='left')-1
+        # maha_index = np.searchsorted(y_maha[:-1],gating_distance, side='left')-1
+        # cost_matrix[row] = 1-h[emb_index,maha_index] # score based on histogram
     return cost_matrix

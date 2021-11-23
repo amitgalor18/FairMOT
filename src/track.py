@@ -45,6 +45,26 @@ def write_results(filename, results, data_type):
                 f.write(line)
     logger.info('save results to {}'.format(filename))
 
+def write_detection_results(filename, results, data_type):
+
+    filename = filename.replace(".txt", "_det.txt")
+
+    if data_type == 'mot':
+        save_format = '{frame},{id},{x1},{y1},{w},{h},1,-1,-1,-1\n'
+    elif data_type == 'kitti':
+        save_format = '{frame} {id} pedestrian 0 0 -10 {x1} {y1} {x2} {y2} -10 -10 -10 -1000 -1000 -1000 -10\n'
+    else:
+        raise ValueError(data_type)
+
+    with open(filename, 'w') as f:
+        for frame_id, tlwhs, track_ids in results:
+            for tlwh, track_id in zip(tlwhs, track_ids):
+
+                x1, y1, w, h = tlwh
+                x2, y2 = x1 + w, y1 + h
+                line = save_format.format(frame=frame_id, id=-1, x1=x1, y1=y1, x2=x2, y2=y2, w=w, h=h)
+                f.write(line)
+    logger.info('save results to {}'.format(filename))
 
 def write_results_score(filename, results, data_type):
     if data_type == 'mot':
@@ -74,6 +94,7 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
     tracker = JDETracker(opt, frame_rate=frame_rate)
     timer = Timer()
     results = []
+    detection_results = []
     frame_id = 0
     print(f'III) found GPU: {torch.cuda.is_available()}')
 
@@ -90,7 +111,7 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
             blob = torch.from_numpy(img).cuda().unsqueeze(0)
         else:
             blob = torch.from_numpy(img).unsqueeze(0)
-        online_targets = tracker.update(blob, img0)
+        online_targets, raw_detections, inactive_stacks = tracker.update(blob, img0)        
         online_tlwhs = []
         online_ids = []
         #online_scores = []
@@ -103,8 +124,20 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
                 online_ids.append(tid)
                 #online_scores.append(t.score)
         timer.toc()
+
+        detection_tlwhs = []
+        detection_ids = []
+        for d in raw_detections:
+            tlwh = d.tlwh
+            vertical = tlwh[2] / tlwh[3] > 1.6
+            if tlwh[2] * tlwh[3] > opt.min_box_area and not vertical:
+                detection_tlwhs.append(tlwh)
+                detection_ids.append(-1)
+
         # save results
         results.append((frame_id + 1, online_tlwhs, online_ids))
+        detection_results.append((frame_id + 1, detection_tlwhs, detection_ids))
+
         #results.append((frame_id + 1, online_tlwhs, online_ids, online_scores))
         if show_image or save_dir is not None:
             online_im = vis.plot_tracking(img0, online_tlwhs, online_ids, frame_id=frame_id,
@@ -116,6 +149,8 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
         frame_id += 1
     # save results
     write_results(result_filename, results, data_type)
+    write_detection_results(result_filename, detection_results, data_type)
+
     #write_results_score(result_filename, results, data_type)
     return frame_id, timer.average_time, timer.calls
 
@@ -133,9 +168,9 @@ def main(opt, data_root='/data/MOT16/train', det_root=None, seqs=('MOT16-05',), 
     accs = []
     n_frame = 0
     timer_avgs, timer_calls = [], []
+    now=datetime.now()
+    current_time = now.strftime("%d-%m-%Y_%H-%M")
     for seq in seqs:
-        now=datetime.now()
-        current_time = now.strftime("%d-%m-%Y_%H-%M")
         output_dir = os.path.join(data_root, '..', 'outputs_'+current_time, exp_name, seq) if save_images or save_videos else None
         logger.info('start seq: {}'.format(seq))
         dataloader = datasets.LoadImages(osp.join(data_root, seq, 'img1'), opt.img_size)
@@ -276,10 +311,12 @@ if __name__ == '__main__':
         data_root = os.path.join(opt.data_dir, 'MOT20/train')
     seqs = [seq.strip() for seq in seqs_str.split()]
 
+    now=datetime.now()
+    current_time = now.strftime("%d-%m-%Y_%H-%M")
     main(opt,
          data_root=data_root,
          seqs=seqs,
-         exp_name='MOT17_test_public_dla34',
+         exp_name='MOT20_'+current_time,
          show_image=False,
          save_images=False,
          save_videos=True)
