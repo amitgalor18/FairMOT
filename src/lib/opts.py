@@ -18,6 +18,8 @@ class opts(object):
                              #help='path to pretrained model')
     self.parser.add_argument('--load_model', default='',
                              help='path to pretrained model')
+    self.parser.add_argument('--load_model_head', default='',
+                             help='path to pretrained head model')
     self.parser.add_argument('--resume', action='store_true',
                              help='resume an experiment. '
                                   'Reloaded the optimizer parameter and '
@@ -107,6 +109,7 @@ class opts(object):
     self.parser.add_argument('--val_mot17', default=True, help='val mot17')
     self.parser.add_argument('--val_mot20', default=False, help='val mot20')
     self.parser.add_argument('--test_mot20', default=False, help='test mot20')
+    self.parser.add_argument('--custom', default=False, help='custom file')
     self.parser.add_argument('--val_hie', default=False, help='val hie')
     self.parser.add_argument('--test_hie', default=False, help='test hie')
     self.parser.add_argument('--conf_thres', type=float, default=0.4, help='confidence thresh for tracking')

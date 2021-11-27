@@ -21,6 +21,7 @@ from tracking_utils.evaluation import Evaluator
 import datasets.dataset.jde as datasets
 
 from tracking_utils.utils import mkdir_if_missing
+from tracking_utils.utils import load_detection
 from opts import opts
 
 
@@ -94,7 +95,9 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
     tracker = JDETracker(opt, frame_rate=frame_rate)
     timer = Timer()
     results = []
+    results_head = []
     detection_results = []
+    detection_results_head = []
     frame_id = 0
     print(f'III) found GPU: {torch.cuda.is_available()}')
 
@@ -111,9 +114,11 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
             blob = torch.from_numpy(img).cuda().unsqueeze(0)
         else:
             blob = torch.from_numpy(img).unsqueeze(0)
-        online_targets, raw_detections, inactive_stacks = tracker.update(blob, img0)        
+        online_targets, raw_detections, inactive_stacks, online_targets_head, raw_detections_head, inactive_stacks_head = tracker.update(blob, img0)       
         online_tlwhs = []
         online_ids = []
+        online_tlwhs_head = []
+        online_ids_head = []
         #online_scores = []
         for t in online_targets:
             tlwh = t.tlwh
@@ -123,20 +128,37 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
                 online_tlwhs.append(tlwh)
                 online_ids.append(tid)
                 #online_scores.append(t.score)
+        for t in online_targets_head:
+            tlwh = t.tlwh
+            tid = t.track_id
+            #vertical = tlwh[2] / tlwh[3] > 1.6 #Irrelevant for heads
+            #if tlwh[2] * tlwh[3] > opt.min_box_area and not vertical:
+            online_tlwhs_head.append(tlwh)
+            online_ids_head.append(tid)
         timer.toc()
 
         detection_tlwhs = []
         detection_ids = []
+        detection_tlwhs_head = []
+        detection_ids_head = []
         for d in raw_detections:
             tlwh = d.tlwh
             vertical = tlwh[2] / tlwh[3] > 1.6
             if tlwh[2] * tlwh[3] > opt.min_box_area and not vertical:
                 detection_tlwhs.append(tlwh)
                 detection_ids.append(-1)
-
+        for d in raw_detections_head:
+            tlwh = d.tlwh
+            #vertical = tlwh[2] / tlwh[3] > 1.6
+            #if tlwh[2] * tlwh[3] > opt.min_box_area and not vertical:
+            detection_tlwhs_head.append(tlwh)
+            detection_ids_head.append(-1)
         # save results
+
         results.append((frame_id + 1, online_tlwhs, online_ids))
         detection_results.append((frame_id + 1, detection_tlwhs, detection_ids))
+        results_head.append((frame_id + 1, online_tlwhs_head, online_ids_head))
+        detection_results_head.append((frame_id + 1, detection_tlwhs_head, detection_ids_head))
 
         #results.append((frame_id + 1, online_tlwhs, online_ids, online_scores))
         if show_image or save_dir is not None:
@@ -150,7 +172,9 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
     # save results
     write_results(result_filename, results, data_type)
     write_detection_results(result_filename, detection_results, data_type)
-
+    result_filename_head=result_filename+'_head'
+    write_results(result_filename_head, results_head, data_type)
+    write_detection_results(result_filename_head, detection_results_head, data_type)
     #write_results_score(result_filename, results, data_type)
     return frame_id, timer.average_time, timer.calls
 
@@ -174,6 +198,8 @@ def main(opt, data_root='/data/MOT16/train', det_root=None, seqs=('MOT16-05',), 
         output_dir = os.path.join(data_root, '..', 'outputs_'+current_time, exp_name, seq) if save_images or save_videos else None
         logger.info('start seq: {}'.format(seq))
         dataloader = datasets.LoadImages(osp.join(data_root, seq, 'img1'), opt.img_size)
+        dets_dir = osp.join(data_root, seq, 'det','det_head.txt') # given detection files (currently head detections run with dla34)
+        # loaded_detections = load_detection(dets_dir, pedestrianHeight=1) # load detections
         result_filename = os.path.join(result_root, '{}.txt'.format(seq))
         meta_info = open(os.path.join(data_root, seq, 'seqinfo.ini')).read()
         frame_rate = int(meta_info[meta_info.find('frameRate') + 10:meta_info.find('\nseqLength')])

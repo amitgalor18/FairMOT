@@ -431,3 +431,32 @@ def plot_results():
             plt.title(s[i])
             if i == 0:
                 plt.legend()
+
+def load_detection(file_path, pedestrianHeight=-1.0, focalLength=6000): #TODO: complete function or toss it
+    f = open(file_path, 'r')
+
+    lines = f.read().split('\n')
+    values = []
+    for l in lines:
+        split = l.split(',')
+        if len(split) < 2:
+            break
+        numbers = [float(i) for i in split]
+        values.append(numbers)
+
+    values = np.array(values, np.int_)
+
+    ids = np.unique(values[:, 1])
+    trajectories = []
+    for id in ids:
+        trajectory = values[id == values[:, 1], :]
+        trajectory[:, 2] += trajectory[:, 4] // 2
+        trajectory[:, 3] += trajectory[:, 5] // 2
+
+        if pedestrianHeight > 0:
+            z = np.expand_dims(focalLength * pedestrianHeight / trajectory[:, 5], 1)
+            trajectory = np.hstack([trajectory, z])
+
+        trajectories.append(trajectory)
+
+    return seq_dets

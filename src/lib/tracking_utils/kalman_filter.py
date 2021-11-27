@@ -169,12 +169,12 @@ class KalmanFilter(object):
         """
         std_pos = [
             self._std_weight_position * mean[:, 3],
-            self._std_weight_position * mean[:, 3],
+            self._std_weight_position * mean[:, 3], 
             1e-2 * np.ones_like(mean[:, 3]),
             self._std_weight_position * mean[:, 3]]
         std_vel = [
             self._std_weight_velocity * mean[:, 3],
-            self._std_weight_velocity * mean[:, 3],
+            self._std_weight_velocity * mean[:, 3], 
             1e-5 * np.ones_like(mean[:, 3]),
             self._std_weight_velocity * mean[:, 3]]
         sqr = np.square(np.r_[std_pos, std_vel]).T
