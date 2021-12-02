@@ -100,6 +100,7 @@ class opts(object):
                                   ' during validation.')
     # tracking
     self.parser.add_argument('--test_mot16', default=False, help='test mot16')
+    self.parser.add_argument('--custom', default=False, help='custom')
     self.parser.add_argument('--val_mot15', default=False, help='val mot15')
     self.parser.add_argument('--test_mot15', default=False, help='test mot15')
     self.parser.add_argument('--val_mot16', default=False, help='val mot16 or mot15')
@@ -110,7 +111,7 @@ class opts(object):
     self.parser.add_argument('--val_hie', default=False, help='val hie')
     self.parser.add_argument('--test_hie', default=False, help='test hie')
     self.parser.add_argument('--conf_thres', type=float, default=0.4, help='confidence thresh for tracking')
-    self.parser.add_argument('--det_thres', type=float, default=0.3, help='confidence thresh for detection')
+    self.parser.add_argument('--det_thres', type=float, default=0.4, help='confidence thresh for detection')
     self.parser.add_argument('--nms_thres', type=float, default=0.4, help='iou thresh for nms')
     self.parser.add_argument('--track_buffer', type=int, default=30, help='tracking buffer')
     self.parser.add_argument('--min-box-area', type=float, default=100, help='filter out tiny boxes')

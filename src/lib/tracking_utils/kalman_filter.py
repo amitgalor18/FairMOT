@@ -51,6 +51,16 @@ class KalmanFilter(object):
         self._std_weight_position = 1. / 20
         self._std_weight_velocity = 1. / 160
 
+        self._std_weight_motion_x = 10*self._std_weight_position 
+        self._std_weight_motion_y = 10*self._std_weight_position 
+        self._std_weight_motion_a = 10*1. / 160
+        self._std_weight_motion_h = 10*self._std_weight_position 
+
+        self._std_weight_measurement_x = 10*self._std_weight_position 
+        self._std_weight_measurement_y = 10*self._std_weight_position 
+        self._std_weight_measurement_a = 10*1. / 100
+        self._std_weight_measurement_h = 10*self._std_weight_position 
+
     def initiate(self, measurement):
         """Create track from unassociated measurement.
 
@@ -75,11 +85,11 @@ class KalmanFilter(object):
         std = [
             2 * self._std_weight_position * measurement[3],
             2 * self._std_weight_position * measurement[3],
-            1e-2,
+            2 * self._std_weight_measurement_a, #1e-2,
             2 * self._std_weight_position * measurement[3],
             10 * self._std_weight_velocity * measurement[3],
             10 * self._std_weight_velocity * measurement[3],
-            1e-5,
+            10 * self._std_weight_motion_a, #1e-5,
             10 * self._std_weight_velocity * measurement[3]]
         covariance = np.diag(np.square(std))
         return mean, covariance
@@ -103,16 +113,22 @@ class KalmanFilter(object):
             state. Unobserved velocities are initialized to 0 mean.
 
         """
-        std_pos = [
-            self._std_weight_position * mean[3],
-            self._std_weight_position * mean[3],
-            1e-2,
-            self._std_weight_position * mean[3]]
+        # std_pos = [
+        #     self._std_weight_position * mean[3],
+        #     self._std_weight_position * mean[3],
+        #     1e-2,
+        #     self._std_weight_position * mean[3]]
+        # std_vel = [
+        #     self._std_weight_velocity * mean[3],
+        #     self._std_weight_velocity * mean[3],
+        #     1e-5,
+        #     self._std_weight_velocity * mean[3]]
+        std_pos = [self._std_weight_measurement_x, self._std_weight_measurement_y, self._std_weight_measurement_a, self._std_weight_measurement_h]
         std_vel = [
-            self._std_weight_velocity * mean[3],
-            self._std_weight_velocity * mean[3],
-            1e-5,
-            self._std_weight_velocity * mean[3]]
+            self._std_weight_motion_x * mean[3],
+            self._std_weight_motion_y * mean[3],
+            self._std_weight_motion_a,
+            self._std_weight_motion_h * mean[3]]
         motion_cov = np.diag(np.square(np.r_[std_pos, std_vel]))
 
         #mean = np.dot(self._motion_mat, mean)
@@ -142,7 +158,7 @@ class KalmanFilter(object):
         std = [
             self._std_weight_position * mean[3],
             self._std_weight_position * mean[3],
-            1e-1,
+            self._std_weight_measurement_a, # 1e-1,
             self._std_weight_position * mean[3]]
         innovation_cov = np.diag(np.square(std))
 
@@ -167,16 +183,27 @@ class KalmanFilter(object):
             Returns the mean vector and covariance matrix of the predicted
             state. Unobserved velocities are initialized to 0 mean.
         """
+        # std_pos = [
+        #     self._std_weight_position * mean[:, 3],
+        #     self._std_weight_position * mean[:, 3],
+        #     1e-2 * np.ones_like(mean[:, 3]),
+        #     self._std_weight_position * mean[:, 3]]
         std_pos = [
-            self._std_weight_position * mean[:, 3],
-            self._std_weight_position * mean[:, 3],
-            1e-2 * np.ones_like(mean[:, 3]),
-            self._std_weight_position * mean[:, 3]]
+            0 * mean[:, 3],
+            0 * mean[:, 3],
+            0 * np.ones_like(mean[:, 3]),
+            0 * mean[:, 3]]
+        # std_vel = [
+        #     self._std_weight_velocity * mean[:, 3],
+        #     self._std_weight_velocity * mean[:, 3],
+        #     1e-5 * np.ones_like(mean[:, 3]),
+        #     self._std_weight_velocity * mean[:, 3]]
         std_vel = [
-            self._std_weight_velocity * mean[:, 3],
-            self._std_weight_velocity * mean[:, 3],
-            1e-5 * np.ones_like(mean[:, 3]),
-            self._std_weight_velocity * mean[:, 3]]
+            self._std_weight_motion_x * mean[:, 3],
+            self._std_weight_motion_y * mean[:, 3],
+            self._std_weight_motion_a * np.ones_like(mean[:, 3]),
+            self._std_weight_motion_h * mean[:, 3]]
+        
         sqr = np.square(np.r_[std_pos, std_vel]).T
 
         motion_cov = []

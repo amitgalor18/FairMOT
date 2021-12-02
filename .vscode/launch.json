@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "mot",
+                "--det_thres",
+                "0.4",
+                "--load_model",
+                "models/mot20_fairmot.pth",
+                "--val_mot20",
+                "true"
+            ]
+        }
+    ]
+}

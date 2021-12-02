@@ -186,7 +186,7 @@ class JDETracker(object):
         self.removed_stracks = []  # type: list[STrack]
 
         self.frame_id = 0
-        self.det_thresh = opt.conf_thres
+        self.det_thresh = opt.det_thres
         self.buffer_size = int(frame_rate / 30.0 * opt.track_buffer)
         self.max_time_lost = self.buffer_size
         self.max_per_image = opt.K
@@ -255,7 +255,7 @@ class JDETracker(object):
         dets = self.post_process(dets, meta)
         dets = self.merge_outputs([dets])[1]
 
-        remain_inds = dets[:, 4] > self.opt.conf_thres
+        remain_inds = dets[:, 4] > self.opt.det_thres
         dets = dets[remain_inds]
         id_feature = id_feature[remain_inds]
 
